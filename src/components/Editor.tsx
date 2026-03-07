@@ -20,16 +20,16 @@ export default function Editor() {
     editorProps: {
       attributes: {
         class:
-          'min-h-[calc(100vh-120px)] w-full focus:outline-none text-gray-900 leading-relaxed',
+          'min-h-[calc(100vh-120px)] w-full focus:outline-none text-gray-900 dark:text-gray-100 leading-relaxed',
       },
     },
   });
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       <Toolbar editor={editor} />
       <div className="flex-1 overflow-auto">
-        <div className="max-w-4xl mx-auto bg-white shadow-sm min-h-full my-6 rounded-lg">
+        <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow-sm min-h-full my-6 rounded-lg">
           <EditorContent
             editor={editor}
             className="px-12 py-10 text-base"
