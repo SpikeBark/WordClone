@@ -1,24 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
-import ReactFlow, {
-  addEdge,
-  useNodesState,
-  useEdgesState,
-  Background,
-  Controls,
-} from 'reactflow';
-import type { Node, Edge, Connection } from 'reactflow';
-import 'reactflow/dist/style.css';
+import { useState, useCallback } from 'react';
 import type { Outline, Paragraph, Point } from '../types/outline';
-import ParagraphBubble from './outline/SectionBubble'; // Renamed from SectionBubble
-import PointBubble from './outline/PointBubble';
 import OutlineLeftSidebar from './outline/OutlineLeftSidebar';
 import OutlineRightPanel from './outline/OutlineRightPanel';
+import KanbanBoard from './outline/KanbanBoard';
 import { Plus, ChevronLeft, FileText } from 'lucide-react';
-
-const nodeTypes = {
-  paragraph: ParagraphBubble,
-  point: PointBubble,
-};
 
 interface OutlineEditorProps {
   onBack: () => void;
@@ -41,61 +26,6 @@ export default function OutlineEditor({
   );
 
   const [selectedBubbleId, setSelectedBubbleId] = useState<string | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
-  // Initialize nodes and edges from outline
-  useEffect(() => {
-    const newNodes: Node[] = [];
-    const newEdges: Edge[] = [];
-
-    outline.paragraphs.forEach((paragraph, paraIndex) => {
-      // Add paragraph node
-      newNodes.push({
-        id: paragraph.id,
-        data: {
-          label: paragraph.title || 'Untitled Paragraph',
-          title: paragraph.title,
-          notes: paragraph.notes,
-          type: 'paragraph',
-          onSelect: () => setSelectedBubbleId(paragraph.id),
-          onAddPoint: () => addPointToParagraph(paragraph.id),
-        },
-        position: { x: paraIndex * 300, y: 0 },
-        type: 'paragraph',
-      });
-
-      // Add point nodes
-      paragraph.points.forEach((point, pointIndex) => {
-        newNodes.push({
-          id: point.id,
-          data: {
-            label: point.title || 'Untitled Point',
-            title: point.title,
-            notes: point.notes,
-            type: 'point',
-            onSelect: () => setSelectedBubbleId(point.id),
-          },
-          position: { x: paraIndex * 300, y: 150 + pointIndex * 120 },
-          type: 'point',
-        });
-
-        // Connect paragraph to point
-        newEdges.push({
-          id: `${paragraph.id}-${point.id}`,
-          source: paragraph.id,
-          target: point.id,
-        });
-      });
-    });
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [outline, setNodes, setEdges]);
-
-  const onConnect = useCallback((connection: Connection) => {
-    setEdges((eds) => addEdge(connection, eds));
-  }, [setEdges]);
 
   const addParagraph = useCallback(() => {
     const newParagraph: Paragraph = {
@@ -183,6 +113,32 @@ export default function OutlineEditor({
     setSelectedBubbleId(null);
   }, []);
 
+  const handleReorderParagraphs = useCallback((reorderedParagraphs: Paragraph[]) => {
+    setOutline((prev) => ({
+      ...prev,
+      paragraphs: reorderedParagraphs,
+    }));
+  }, []);
+
+  const handleReorderPoints = useCallback((paragraphId: string, pointIds: string[]) => {
+    setOutline((prev) => ({
+      ...prev,
+      paragraphs: prev.paragraphs.map((paragraph) => {
+        if (paragraph.id === paragraphId) {
+          const reorderedPoints = pointIds
+            .map((id) => paragraph.points.find((p) => p.id === id))
+            .filter((p): p is Point => p !== undefined)
+            .map((p, idx) => ({ ...p, order: idx + 1 }));
+          return {
+            ...paragraph,
+            points: reorderedPoints,
+          };
+        }
+        return paragraph;
+      }),
+    }));
+  }, []);
+
   const getSelectedBubble = () => {
     if (!selectedBubbleId) return null;
 
@@ -246,20 +202,17 @@ export default function OutlineEditor({
           </div>
         </div>
 
-        {/* Flow Canvas */}
-        <div className="flex-1">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            fitView
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
+        {/* Kanban Board */}
+        <div className="flex-1 bg-gray-100 dark:bg-gray-950">
+          <KanbanBoard
+            paragraphs={outline.paragraphs}
+            selectedId={selectedBubbleId}
+            onSelectBubble={setSelectedBubbleId}
+            onAddPoint={addPointToParagraph}
+            onUpdateBubble={updateBubble}
+            onReorderParagraphs={handleReorderParagraphs}
+            onReorderPoints={handleReorderPoints}
+          />
         </div>
       </div>
 
