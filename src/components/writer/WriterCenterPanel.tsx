@@ -1,11 +1,12 @@
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import type { Paragraph } from '../../types/outline';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import ParagraphToolbar from '../ParagraphToolbar';
 
 interface WriterCenterPanelProps {
   paragraph: Paragraph | null;
   onContentChange: (content: string) => void;
+  onSelectionChange: (selectedText: string) => void;
   onMarkComplete: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -16,6 +17,7 @@ interface WriterCenterPanelProps {
 export default function WriterCenterPanel({
   paragraph,
   onContentChange,
+  onSelectionChange,
   onMarkComplete,
   onPrevious,
   onNext,
@@ -23,6 +25,63 @@ export default function WriterCenterPanel({
   hasNext,
 }: WriterCenterPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const noteBySelection = useMemo(() => {
+    const map = new Map<string, string>();
+    (paragraph?.selectionNotes ?? []).forEach((entry) => {
+      if (!map.has(entry.selectedText)) {
+        map.set(entry.selectedText, entry.note);
+      }
+    });
+    return map;
+  }, [paragraph?.selectionNotes]);
+
+  const escapedText = useMemo(() => {
+    return paragraph?.content
+      ? paragraph.content
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+      : '';
+  }, [paragraph?.content]);
+
+  const highlightedPreview = useMemo(() => {
+    if (!escapedText) return '';
+
+    const entries = Array.from(noteBySelection.entries())
+      .filter(([selectedText]) => selectedText)
+      .sort((a, b) => b[0].length - a[0].length);
+
+    if (entries.length === 0) return escapedText;
+
+    let output = escapedText;
+    entries.forEach(([selectedText, note]) => {
+      const escapedSelected = selectedText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const safeNote = note
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+      output = output.replace(
+        new RegExp(escapedSelected, 'g'),
+        `<mark class="bg-yellow-200 dark:bg-yellow-700/60 rounded px-0.5" title="${safeNote}">$&</mark>`
+      );
+    });
+
+    return output;
+  }, [escapedText, noteBySelection]);
+
+  const updateSelection = () => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const selection = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+    onSelectionChange(selection);
+  };
+
   if (!paragraph) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -61,14 +120,33 @@ export default function WriterCenterPanel({
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-4xl mx-auto">
           {/* Paragraph toolbar (sticky within this scroll container) */}
-          <ParagraphToolbar textareaRef={textareaRef} onChange={(val) => onContentChange(val)} value={paragraph.content} />
+          <ParagraphToolbar
+            textareaRef={textareaRef}
+            onChange={(val) => onContentChange(val)}
+          />
           <textarea
             ref={textareaRef}
             value={paragraph.content}
             onChange={(e) => onContentChange(e.target.value)}
+            onSelect={updateSelection}
+            onKeyUp={updateSelection}
+            onMouseUp={updateSelection}
             placeholder="Start writing this paragraph..."
             className="w-full h-96 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-base leading-relaxed"
           />
+
+          {(paragraph.selectionNotes?.length ?? 0) > 0 && (
+            <div className="mt-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                Note Hover Preview
+              </p>
+              <p
+                className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed"
+                // Render highlighted note-linked text spans with browser title tooltip on hover.
+                dangerouslySetInnerHTML={{ __html: highlightedPreview }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

@@ -2,9 +2,8 @@ import React from 'react';
 import { Bold, Italic, Underline, List, ListOrdered } from 'lucide-react';
 
 interface Props {
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   onChange: (value: string) => void;
-  value: string;
 }
 
 function wrapSelection(textarea: HTMLTextAreaElement, before: string, after = before) {
@@ -20,7 +19,7 @@ function wrapSelection(textarea: HTMLTextAreaElement, before: string, after = be
   return newText;
 }
 
-export default function ParagraphToolbar({ textareaRef, onChange, value }: Props) {
+export default function ParagraphToolbar({ textareaRef, onChange }: Props) {
   const applyWrap = (before: string, after?: string) => {
     const ta = textareaRef.current;
     if (!ta) return;

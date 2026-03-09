@@ -21,6 +21,7 @@ export default function ParagraphWriter({
   const [selectedParagraphId, setSelectedParagraphId] = useState<string | null>(
     null
   );
+  const [currentSelection, setCurrentSelection] = useState<string>('');
 
   // Get all paragraphs in order
   const allParagraphs = useMemo(() => {
@@ -58,6 +59,52 @@ export default function ParagraphWriter({
             };
           }
           return para;
+        }),
+      }));
+    },
+    []
+  );
+
+  const addGeneralNote = useCallback(
+    (paragraphId: string, note: string) => {
+      const trimmed = note.trim();
+      if (!trimmed) return;
+
+      setOutline((prev) => ({
+        ...prev,
+        paragraphs: prev.paragraphs.map((para) => {
+          if (para.id !== paragraphId) return para;
+          return {
+            ...para,
+            generalNotes: [...(para.generalNotes ?? []), trimmed],
+          };
+        }),
+      }));
+    },
+    []
+  );
+
+  const addSelectionNote = useCallback(
+    (paragraphId: string, selectedText: string, note: string) => {
+      const text = selectedText.trim();
+      const noteText = note.trim();
+      if (!text || !noteText) return;
+
+      setOutline((prev) => ({
+        ...prev,
+        paragraphs: prev.paragraphs.map((para) => {
+          if (para.id !== paragraphId) return para;
+          return {
+            ...para,
+            selectionNotes: [
+              ...(para.selectionNotes ?? []),
+              {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                selectedText: text,
+                note: noteText,
+              },
+            ],
+          };
         }),
       }));
     },
@@ -163,6 +210,7 @@ export default function ParagraphWriter({
           onContentChange={(content) =>
             selectedParagraphId && updateParagraphContent(selectedParagraphId, content)
           }
+          onSelectionChange={setCurrentSelection}
           onMarkComplete={markParagraphComplete}
           onPrevious={goToPrevious}
           onNext={goToNext}
@@ -171,7 +219,16 @@ export default function ParagraphWriter({
         />
 
         {/* Right Panel - Guidance */}
-        <WriterRightPanel paragraph={currentParagraph} />
+        <WriterRightPanel
+          paragraph={currentParagraph}
+          selectedText={currentSelection}
+          onAddGeneralNote={(note) =>
+            selectedParagraphId && addGeneralNote(selectedParagraphId, note)
+          }
+          onAddSelectionNote={(selectedText, note) =>
+            selectedParagraphId && addSelectionNote(selectedParagraphId, selectedText, note)
+          }
+        />
       </div>
     </div>
   );

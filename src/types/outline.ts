@@ -5,10 +5,18 @@ export interface Point {
   order: number;
 }
 
+export interface TextSelectionNote {
+  id: string;
+  selectedText: string;
+  note: string;
+}
+
 export interface Paragraph {
   id: string;
   title: string;
   notes: string;
+  generalNotes?: string[];
+  selectionNotes?: TextSelectionNote[];
   points: Point[];
   content: string;
   status: 'empty' | 'draft' | 'complete';
