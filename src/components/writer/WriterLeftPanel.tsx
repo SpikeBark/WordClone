@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Circle, CircleDot, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Circle, CircleDot, CheckCircle, FileText } from 'lucide-react';
 import type { Outline } from '../../types/outline';
+import WriterFullPaperModal from './WriterFullPaperModal';
+import { assembleDocument } from '../../utils/documentAssembler';
 
 interface WriterLeftPanelProps {
   outline: Outline;
@@ -14,6 +16,7 @@ export default function WriterLeftPanel({
   onSelectParagraph,
 }: WriterLeftPanelProps) {
   const [expandedParagraphs, setExpandedParagraphs] = useState<Set<string>>(new Set());
+  const [showFullPaper, setShowFullPaper] = useState(false);
 
   const toggleParagraph = (paragraphId: string) => {
     const newExpanded = new Set(expandedParagraphs);
@@ -39,11 +42,27 @@ export default function WriterLeftPanel({
   return (
     <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
         <h2 className="font-semibold text-gray-900 dark:text-gray-100">
           Document Outline
         </h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFullPaper(true)}
+            title="View full assembled paper"
+            className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-sm rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
+          >
+            <FileText className="w-4 h-4" />
+            <span>View Full Paper</span>
+          </button>
+        </div>
       </div>
+
+      <WriterFullPaperModal
+        open={showFullPaper}
+        onClose={() => setShowFullPaper(false)}
+        content={assembleDocument(outline)}
+      />
 
       {/* Paragraphs List */}
       <div className="p-3">
