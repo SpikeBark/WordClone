@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
-import type { Section, Paragraph } from '../../types/outline';
+import type { Paragraph, Point } from '../../types/outline';
 
 interface OutlineRightPanelProps {
   selectedBubble: {
-    type: 'section' | 'paragraph';
-    data: Section | Paragraph;
+    type: 'paragraph' | 'point';
+    data: Paragraph | Point;
   } | null;
   onUpdate: (bubbleId: string, update: { title?: string; notes?: string }) => void;
   onDelete: (bubbleId: string) => void;
@@ -30,7 +30,7 @@ export default function OutlineRightPanel({
     return (
       <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-6 flex flex-col items-center justify-center text-center">
         <p className="text-gray-500 dark:text-gray-400">
-          Select a section or paragraph to edit
+          Select a paragraph or point to edit
         </p>
       </div>
     );
@@ -50,7 +50,7 @@ export default function OutlineRightPanel({
     }
   };
 
-  const isSectionType = selectedBubble.type === 'section';
+  const isParagraphType = selectedBubble.type === 'paragraph';
 
   return (
     <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto flex flex-col">
@@ -88,9 +88,9 @@ export default function OutlineRightPanel({
             onChange={(e) => setNotes(e.target.value)}
             onBlur={handleSave}
             placeholder={
-              isSectionType
-                ? 'Add section notes, key themes, or structure notes...'
-                : 'Add paragraph ideas, arguments, evidence, or references...'
+              isParagraphType
+                ? 'Add paragraph notes, key themes, or structure notes...'
+                : 'Add point ideas, arguments, evidence, or references...'
             }
             className="w-full h-48 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
           />
@@ -107,12 +107,10 @@ export default function OutlineRightPanel({
               {selectedBubble.data.id}
             </code>
           </p>
-          {!isSectionType && 'order' in selectedBubble.data && (
-            <p>
-              <span className="font-medium">Order:</span>{' '}
-              {selectedBubble.data.order}
-            </p>
-          )}
+          <p>
+            <span className="font-medium">Order:</span>{' '}
+            {selectedBubble.data.order}
+          </p>
         </div>
       </div>
 

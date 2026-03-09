@@ -8,21 +8,21 @@ import ReactFlow, {
 } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
 import 'reactflow/dist/style.css';
-import type { Outline, Section, Paragraph } from '../types/outline';
-import SectionBubble from './outline/SectionBubble';
-import ParagraphBubble from './outline/ParagraphBubble';
+import type { Outline, Paragraph, Point } from '../types/outline';
+import ParagraphBubble from './outline/SectionBubble'; // Renamed from SectionBubble
+import PointBubble from './outline/PointBubble';
 import OutlineLeftSidebar from './outline/OutlineLeftSidebar';
 import OutlineRightPanel from './outline/OutlineRightPanel';
 import { Plus, ChevronLeft, FileText } from 'lucide-react';
 
 const nodeTypes = {
-  section: SectionBubble,
   paragraph: ParagraphBubble,
+  point: PointBubble,
 };
 
 interface OutlineEditorProps {
   onBack: () => void;
-  onStartWriting?: () => void;
+  onStartWriting?: (outline: Outline) => void;
   initialOutline?: Outline;
   documentMetadata?: any;
 }
@@ -36,7 +36,7 @@ export default function OutlineEditor({
   const [outline, setOutline] = useState<Outline>(
     initialOutline || {
       title: documentMetadata?.title || 'Untitled Document',
-      sections: [],
+      paragraphs: [],
     }
   );
 
@@ -49,42 +49,42 @@ export default function OutlineEditor({
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
 
-    outline.sections.forEach((section, sectionIndex) => {
-      // Add section node
+    outline.paragraphs.forEach((paragraph, paraIndex) => {
+      // Add paragraph node
       newNodes.push({
-        id: section.id,
+        id: paragraph.id,
         data: {
-          label: section.title || 'Untitled Section',
-          title: section.title,
-          notes: section.notes,
-          type: 'section',
-          onSelect: () => setSelectedBubbleId(section.id),
-          onAddParagraph: () => addParagraphToSection(section.id),
+          label: paragraph.title || 'Untitled Paragraph',
+          title: paragraph.title,
+          notes: paragraph.notes,
+          type: 'paragraph',
+          onSelect: () => setSelectedBubbleId(paragraph.id),
+          onAddPoint: () => addPointToParagraph(paragraph.id),
         },
-        position: { x: sectionIndex * 300, y: 0 },
-        type: 'section',
+        position: { x: paraIndex * 300, y: 0 },
+        type: 'paragraph',
       });
 
-      // Add paragraph nodes
-      section.paragraphs.forEach((para, paraIndex) => {
+      // Add point nodes
+      paragraph.points.forEach((point, pointIndex) => {
         newNodes.push({
-          id: para.id,
+          id: point.id,
           data: {
-            label: para.title || 'Untitled Paragraph',
-            title: para.title,
-            notes: para.notes,
-            type: 'paragraph',
-            onSelect: () => setSelectedBubbleId(para.id),
+            label: point.title || 'Untitled Point',
+            title: point.title,
+            notes: point.notes,
+            type: 'point',
+            onSelect: () => setSelectedBubbleId(point.id),
           },
-          position: { x: sectionIndex * 300, y: 150 + paraIndex * 120 },
-          type: 'paragraph',
+          position: { x: paraIndex * 300, y: 150 + pointIndex * 120 },
+          type: 'point',
         });
 
-        // Connect section to paragraph
+        // Connect paragraph to point
         newEdges.push({
-          id: `${section.id}-${para.id}`,
-          source: section.id,
-          target: para.id,
+          id: `${paragraph.id}-${point.id}`,
+          source: paragraph.id,
+          target: point.id,
         });
       });
     });
@@ -97,36 +97,39 @@ export default function OutlineEditor({
     setEdges((eds) => addEdge(connection, eds));
   }, [setEdges]);
 
-  const addSection = useCallback(() => {
-    const newSection: Section = {
-      id: `section-${Date.now()}`,
-      title: 'New Section',
+  const addParagraph = useCallback(() => {
+    const newParagraph: Paragraph = {
+      id: `para-${Date.now()}`,
+      title: 'New Paragraph',
       notes: '',
-      paragraphs: [],
+      points: [],
+      content: '',
+      status: 'empty',
+      order: outline.paragraphs.length + 1,
     };
     setOutline((prev) => ({
       ...prev,
-      sections: [...prev.sections, newSection],
-    }));
-  }, []);
+      paragraphs: [...prev.paragraphs, newParagraph],
+   }));
+  }, [outline.paragraphs.length]);
 
-  const addParagraphToSection = useCallback((sectionId: string) => {
+  const addPointToParagraph = useCallback((paragraphId: string) => {
     setOutline((prev) => ({
       ...prev,
-      sections: prev.sections.map((section) => {
-        if (section.id === sectionId) {
-          const newParagraph: Paragraph = {
-            id: `paragraph-${Date.now()}`,
-            title: 'New Paragraph',
+      paragraphs: prev.paragraphs.map((paragraph) => {
+        if (paragraph.id === paragraphId) {
+          const newPoint: Point = {
+            id: `point-${Date.now()}`,
+            title: 'New Point',
             notes: '',
-            order: section.paragraphs.length + 1,
+            order: paragraph.points.length + 1,
           };
           return {
-            ...section,
-            paragraphs: [...section.paragraphs, newParagraph],
+            ...paragraph,
+            points: [...paragraph.points, newPoint],
           };
         }
-        return section;
+        return paragraph;
       }),
     }));
   }, []);
@@ -135,35 +138,32 @@ export default function OutlineEditor({
     (bubbleId: string, update: { title?: string; notes?: string }) => {
       setOutline((prev) => ({
         ...prev,
-        sections: prev.sections.map((section) => {
-          let updated = false;
-          if (section.id === bubbleId) {
-            updated = true;
+        paragraphs: prev.paragraphs.map((paragraph) => {
+          if (paragraph.id === bubbleId) {
             return {
-              ...section,
-              title: update.title ?? section.title,
-              notes: update.notes ?? section.notes,
+              ...paragraph,
+              title: update.title ?? paragraph.title,
+              notes: update.notes ?? paragraph.notes,
             };
           }
 
-          if (section.paragraphs.some((p) => p.id === bubbleId)) {
-            updated = true;
+          if (paragraph.points.some((p) => p.id === bubbleId)) {
             return {
-              ...section,
-              paragraphs: section.paragraphs.map((para) => {
-                if (para.id === bubbleId) {
+              ...paragraph,
+              points: paragraph.points.map((point) => {
+                if (point.id === bubbleId) {
                   return {
-                    ...para,
-                    title: update.title ?? para.title,
-                    notes: update.notes ?? para.notes,
+                    ...point,
+                    title: update.title ?? point.title,
+                    notes: update.notes ?? point.notes,
                   };
                 }
-                return para;
+                return point;
               }),
             };
           }
 
-          return updated ? section : section;
+          return paragraph;
         }),
       }));
     },
@@ -173,11 +173,11 @@ export default function OutlineEditor({
   const deleteBubble = useCallback((bubbleId: string) => {
     setOutline((prev) => ({
       ...prev,
-      sections: prev.sections
-        .filter((section) => section.id !== bubbleId)
-        .map((section) => ({
-          ...section,
-          paragraphs: section.paragraphs.filter((p) => p.id !== bubbleId),
+      paragraphs: prev.paragraphs
+        .filter((paragraph) => paragraph.id !== bubbleId)
+        .map((paragraph) => ({
+          ...paragraph,
+          points: paragraph.points.filter((p) => p.id !== bubbleId),
         })),
     }));
     setSelectedBubbleId(null);
@@ -186,13 +186,13 @@ export default function OutlineEditor({
   const getSelectedBubble = () => {
     if (!selectedBubbleId) return null;
 
-    for (const section of outline.sections) {
-      if (section.id === selectedBubbleId) {
-        return { type: 'section' as const, data: section };
+    for (const paragraph of outline.paragraphs) {
+      if (paragraph.id === selectedBubbleId) {
+        return { type: 'paragraph' as const, data: paragraph };
       }
-      const para = section.paragraphs.find((p) => p.id === selectedBubbleId);
-      if (para) {
-        return { type: 'paragraph' as const, data: para };
+      const point = paragraph.points.find((p) => p.id === selectedBubbleId);
+      if (point) {
+        return { type: 'point' as const, data: point };
       }
     }
     return null;
@@ -205,7 +205,7 @@ export default function OutlineEditor({
         outline={outline}
         selectedId={selectedBubbleId}
         onSelectBubble={setSelectedBubbleId}
-        onAddSection={addSection}
+        onAddParagraph={addParagraph}
       />
 
       {/* Center Canvas */}
@@ -228,15 +228,15 @@ export default function OutlineEditor({
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={addSection}
+              onClick={addParagraph}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <Plus className="w-4 h-4" />
-              Add Section
+              Add Paragraph
             </button>
             {onStartWriting && (
               <button
-                onClick={onStartWriting}
+                onClick={() => onStartWriting(outline)}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 <FileText className="w-4 h-4" />

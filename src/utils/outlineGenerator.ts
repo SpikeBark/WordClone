@@ -1,4 +1,4 @@
-import type { Outline, Section, Paragraph } from '../types/outline';
+import type { Outline, Paragraph, Point } from '../types/outline';
 
 export interface DocumentMetadata {
   document_type: string;
@@ -10,7 +10,7 @@ export interface DocumentMetadata {
   deadline: string;
 }
 
-// Default outline templates based on document type
+// Default paragraph titles based on document type
 const OUTLINE_TEMPLATES: Record<string, string[]> = {
   Essay: [
     'Introduction',
@@ -74,30 +74,33 @@ export function generateDefaultOutline(
 ): Outline {
   const templates = OUTLINE_TEMPLATES[metadata.document_type] || OUTLINE_TEMPLATES['Other'];
 
-  const sections: Section[] = templates.map((sectionTitle, index) => {
-    // Generate 2-3 placeholder paragraphs per section
-    const paragraphCount = Math.max(2, Math.ceil(Math.random() * 3));
-    const paragraphs: Paragraph[] = [];
+  const paragraphs: Paragraph[] = templates.map((paragraphTitle, index) => {
+    // Generate 2-4 points per paragraph
+    const pointCount = Math.max(2, Math.ceil(Math.random() * 4));
+    const points: Point[] = [];
 
-    for (let i = 1; i <= paragraphCount; i++) {
-      paragraphs.push({
-        id: `para-${Date.now()}-${index}-${i}`,
-        title: `Point ${i}`,
+    for (let i = 1; i <= pointCount; i++) {
+      points.push({
+        id: `point-${Date.now()}-${index}-${i}`,
+        title: `Key idea ${i}`,
         notes: '',
         order: i,
       });
     }
 
     return {
-      id: `section-${Date.now()}-${index}`,
-      title: sectionTitle,
+      id: `para-${Date.now()}-${index}`,
+      title: paragraphTitle,
       notes: `${metadata.purpose} - ${metadata.tone} tone for ${metadata.audience}`,
-      paragraphs,
+      points,
+      content: '',
+      status: 'empty',
+      order: index + 1,
     };
   });
 
   return {
     title,
-    sections,
+    paragraphs,
   };
 }

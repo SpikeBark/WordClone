@@ -1,6 +1,6 @@
 import { Handle, Position } from 'reactflow';
 
-interface ParagraphBubbleProps {
+interface PointBubbleProps {
   data: {
     label: string;
     title: string;
@@ -10,7 +10,7 @@ interface ParagraphBubbleProps {
   };
 }
 
-export default function ParagraphBubble({ data }: ParagraphBubbleProps) {
+export default function PointBubble({ data }: PointBubbleProps) {
   return (
     <div
       onClick={data.onSelect}

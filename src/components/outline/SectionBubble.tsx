@@ -1,18 +1,18 @@
 import { Handle, Position } from 'reactflow';
 import { Plus } from 'lucide-react';
 
-interface SectionBubbleProps {
+interface ParagraphBubbleProps {
   data: {
     label: string;
     title: string;
     notes: string;
     type: string;
     onSelect: () => void;
-    onAddParagraph: () => void;
+    onAddPoint: () => void;
   };
 }
 
-export default function SectionBubble({ data }: SectionBubbleProps) {
+export default function ParagraphBubble({ data }: ParagraphBubbleProps) {
   return (
     <div
       onClick={data.onSelect}
@@ -32,12 +32,12 @@ export default function SectionBubble({ data }: SectionBubbleProps) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          data.onAddParagraph();
+          data.onAddPoint();
         }}
         className="w-full flex items-center justify-center gap-1 mt-3 bg-white/20 hover:bg-white/30 text-white text-xs py-1 rounded px-2 transition"
       >
         <Plus className="w-3 h-3" />
-        Add Para
+        Add Point
       </button>
 
       <Handle type="source" position={Position.Bottom} />

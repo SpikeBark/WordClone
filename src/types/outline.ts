@@ -1,29 +1,32 @@
-export interface Paragraph {
+export interface Point {
   id: string;
   title: string;
   notes: string;
   order: number;
 }
 
-export interface Section {
+export interface Paragraph {
   id: string;
   title: string;
   notes: string;
-  paragraphs: Paragraph[];
+  points: Point[];
+  content: string;
+  status: 'empty' | 'draft' | 'complete';
+  order: number;
 }
 
 export interface Outline {
   title: string;
-  sections: Section[];
+  paragraphs: Paragraph[];
 }
 
 export interface BubbleNode {
   id: string;
-  type: 'section' | 'paragraph';
+  type: 'paragraph' | 'point';
   title: string;
   notes: string;
-  sectionId?: string; // For paragraphs, the section they belong to
-  order?: number; // For paragraphs
+  paragraphId?: string; // For points, the paragraph they belong to
+  order?: number;
 }
 
 export interface BubbleEdge {

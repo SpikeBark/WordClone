@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import Editor from './components/Editor';
 import Home from './components/Home';
 import OutlineEditor from './components/OutlineEditor';
+import ParagraphWriter from './components/ParagraphWriter';
 import DocumentSetupModal, { type DocumentMetadata } from './components/DocumentSetupModal';
 import { generateDefaultOutline } from './utils/outlineGenerator';
 import type { Outline } from './types/outline';
@@ -55,8 +56,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [view, setView] = useState<'home' | 'outline' | 'editor'>('home');
-  const [openEditorKey, setOpenEditorKey] = useState<number | null>(null);
+  const [view, setView] = useState<'home' | 'outline' | 'writer' | 'editor'>('home');
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [currentOutline, setCurrentOutline] = useState<Outline | null>(null);
   const [currentMetadata, setCurrentMetadata] = useState<DocumentMetadata | null>(null);
@@ -83,9 +83,17 @@ function App() {
     setCurrentMetadata(null);
   };
 
-  const handleStartWriting = () => {
-    setOpenEditorKey(Date.now());
-    setView('editor');
+  const handleStartWriting = (updatedOutline: Outline) => {
+    setCurrentOutline(updatedOutline);
+    setView('writer');
+  };
+
+  const handleBackFromWriter = () => {
+    setView('outline');
+  };
+
+  const handleSaveOutline = (updatedOutline: Outline) => {
+    setCurrentOutline(updatedOutline);
   };
 
   return (
@@ -99,8 +107,15 @@ function App() {
           onStartWriting={handleStartWriting}
         />
       )}
+      {view === 'writer' && currentOutline && (
+        <ParagraphWriter
+          initialOutline={currentOutline}
+          onBack={handleBackFromWriter}
+          onSave={handleSaveOutline}
+        />
+      )}
       {view === 'editor' && (
-        <Editor key={openEditorKey} />
+        <Editor />
       )}
       {showSetupModal && (
         <DocumentSetupModal onClose={closeSetupModal} onCreate={handleCreate} />

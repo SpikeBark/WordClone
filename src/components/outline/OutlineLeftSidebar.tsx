@@ -6,7 +6,7 @@ interface OutlineLeftSidebarProps {
   outline: Outline;
   selectedId: string | null;
   onSelectBubble: (id: string) => void;
-  onAddSection: () => void;
+  onAddParagraph: () => void;
 }
 
 export default function OutlineLeftSidebar({
@@ -14,18 +14,18 @@ export default function OutlineLeftSidebar({
   selectedId,
   onSelectBubble,
 }: OutlineLeftSidebarProps) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(outline.sections.map((s) => s.id))
+  const [expandedParagraphs, setExpandedParagraphs] = useState<Set<string>>(
+    new Set(outline.paragraphs.map((p) => p.id))
   );
 
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
+  const toggleParagraph = (paragraphId: string) => {
+    const newExpanded = new Set(expandedParagraphs);
+    if (newExpanded.has(paragraphId)) {
+      newExpanded.delete(paragraphId);
     } else {
-      newExpanded.add(sectionId);
+      newExpanded.add(paragraphId);
     }
-    setExpandedSections(newExpanded);
+    setExpandedParagraphs(newExpanded);
   };
 
   return (
@@ -38,66 +38,70 @@ export default function OutlineLeftSidebar({
         </div>
       </div>
 
-      {/* Sections List */}
+      {/* Paragraphs List */}
       <div className="p-3">
-        {outline.sections.length === 0 ? (
+        {outline.paragraphs.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            No sections yet. Add one to begin.
+            No paragraphs yet. Add one to begin.
           </p>
         ) : (
-          outline.sections.map((section) => (
-            <div key={section.id} className="mb-2">
-              {/* Section Item */}
-              <div
-                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition ${
-                  selectedId === section.id
-                    ? 'bg-blue-100 dark:bg-blue-900'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="p-0 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+          outline.paragraphs
+            .sort((a, b) => a.order - b.order)
+            .map((paragraph) => (
+              <div key={paragraph.id} className="mb-2">
+                {/* Paragraph Item */}
+                <div
+                  className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition ${
+                    selectedId === paragraph.id
+                      ? 'bg-blue-100 dark:bg-blue-900'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
                 >
-                  {expandedSections.has(section.id) ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-                <button
-                  onClick={() => onSelectBubble(section.id)}
-                  className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
-                >
-                  {section.title || 'Untitled Section'}
-                </button>
-              </div>
-
-              {/* Paragraphs in Section */}
-              {expandedSections.has(section.id) && (
-                <div className="ml-6 space-y-1">
-                  {section.paragraphs.map((para) => (
-                    <button
-                      key={para.id}
-                      onClick={() => onSelectBubble(para.id)}
-                      className={`w-full text-left p-2 rounded-lg text-xs transition ${
-                        selectedId === para.id
-                          ? 'bg-green-100 dark:bg-green-900 text-gray-900 dark:text-gray-100'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {para.title || 'Untitled Paragraph'}
-                    </button>
-                  ))}
-                  {section.paragraphs.length === 0 && (
-                    <p className="text-xs text-gray-400 italic p-2">
-                      No paragraphs
-                    </p>
-                  )}
+                  <button
+                    onClick={() => toggleParagraph(paragraph.id)}
+                    className="p-0 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                  >
+                    {expandedParagraphs.has(paragraph.id) ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => onSelectBubble(paragraph.id)}
+                    className="flex-1 text-left text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+                  >
+                    {paragraph.title || 'Untitled Paragraph'}
+                  </button>
                 </div>
-              )}
-            </div>
-          ))
+
+                {/* Points in Paragraph */}
+                {expandedParagraphs.has(paragraph.id) && (
+                  <div className="ml-6 space-y-1">
+                    {paragraph.points
+                      .sort((a, b) => a.order - b.order)
+                      .map((point) => (
+                        <button
+                          key={point.id}
+                          onClick={() => onSelectBubble(point.id)}
+                          className={`w-full text-left p-2 rounded-lg text-xs transition ${
+                            selectedId === point.id
+                              ? 'bg-green-100 dark:bg-green-900 text-gray-900 dark:text-gray-100'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {point.title || 'Untitled Point'}
+                        </button>
+                      ))}
+                    {paragraph.points.length === 0 && (
+                      <p className="text-xs text-gray-400 italic p-2">
+                        No points
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
         )}
       </div>
     </div>
