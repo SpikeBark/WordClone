@@ -1,7 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import Editor from './components/Editor';
 import Home from './components/Home';
+import OutlineEditor from './components/OutlineEditor';
 import DocumentSetupModal, { type DocumentMetadata } from './components/DocumentSetupModal';
+import { generateDefaultOutline } from './utils/outlineGenerator';
+import type { Outline } from './types/outline';
 
 type Theme = 'light' | 'dark';
 
@@ -52,25 +55,52 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const [view, setView] = useState<'home' | 'outline' | 'editor'>('home');
   const [openEditorKey, setOpenEditorKey] = useState<number | null>(null);
   const [showSetupModal, setShowSetupModal] = useState(false);
+  const [currentOutline, setCurrentOutline] = useState<Outline | null>(null);
+  const [currentMetadata, setCurrentMetadata] = useState<DocumentMetadata | null>(null);
 
   const openSetupModal = () => setShowSetupModal(true);
   const closeSetupModal = () => setShowSetupModal(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleCreate = (_metadata: DocumentMetadata) => {
+  const handleCreate = (metadata: DocumentMetadata) => {
     setShowSetupModal(false);
+    setCurrentMetadata(metadata);
+
+    // Generate default outline from metadata
+    const outline = generateDefaultOutline(
+      metadata.topic || 'Untitled Document',
+      metadata as any
+    );
+    setCurrentOutline(outline);
+    setView('outline');
+  };
+
+  const handleBackFromOutline = () => {
+    setView('home');
+    setCurrentOutline(null);
+    setCurrentMetadata(null);
+  };
+
+  const handleStartWriting = () => {
     setOpenEditorKey(Date.now());
-    // TODO: persist _metadata with the document once storage is implemented
+    setView('editor');
   };
 
   return (
     <ThemeProvider>
-      {openEditorKey ? (
+      {view === 'home' && <Home onCreate={openSetupModal} />}
+      {view === 'outline' && currentOutline && (
+        <OutlineEditor
+          initialOutline={currentOutline}
+          documentMetadata={currentMetadata}
+          onBack={handleBackFromOutline}
+          onStartWriting={handleStartWriting}
+        />
+      )}
+      {view === 'editor' && (
         <Editor key={openEditorKey} />
-      ) : (
-        <Home onCreate={openSetupModal} />
       )}
       {showSetupModal && (
         <DocumentSetupModal onClose={closeSetupModal} onCreate={handleCreate} />
