@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import Editor from './components/Editor';
 import Home from './components/Home';
+import DocumentSetupModal, { type DocumentMetadata } from './components/DocumentSetupModal';
 
 type Theme = 'light' | 'dark';
 
@@ -52,9 +53,16 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 function App() {
   const [openEditorKey, setOpenEditorKey] = useState<number | null>(null);
+  const [showSetupModal, setShowSetupModal] = useState(false);
 
-  const createNewDocument = () => {
+  const openSetupModal = () => setShowSetupModal(true);
+  const closeSetupModal = () => setShowSetupModal(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleCreate = (_metadata: DocumentMetadata) => {
+    setShowSetupModal(false);
     setOpenEditorKey(Date.now());
+    // TODO: persist _metadata with the document once storage is implemented
   };
 
   return (
@@ -62,7 +70,10 @@ function App() {
       {openEditorKey ? (
         <Editor key={openEditorKey} />
       ) : (
-        <Home onCreate={createNewDocument} />
+        <Home onCreate={openSetupModal} />
+      )}
+      {showSetupModal && (
+        <DocumentSetupModal onClose={closeSetupModal} onCreate={handleCreate} />
       )}
     </ThemeProvider>
   );

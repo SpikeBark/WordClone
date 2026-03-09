@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function Home({ onCreate }: { onCreate: () => void }) {
   return (
@@ -11,8 +10,8 @@ export default function Home({ onCreate }: { onCreate: () => void }) {
             className="flex flex-col items-start p-6 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition"
           >
             <div className="text-4xl mb-4">📄</div>
-            <div className="text-lg font-medium text-gray-900 dark:text-gray-100">Empty document</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">Create a new blank document</div>
+            <div className="text-lg font-medium text-gray-900 dark:text-gray-100">Create New Document</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">Set up and create a new document</div>
           </button>
 
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col">
