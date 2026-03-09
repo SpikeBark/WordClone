@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import Editor from './components/Editor';
 import Home from './components/Home';
+import OutlineEditor from './components/OutlineEditor';
+import ParagraphWriter from './components/ParagraphWriter';
+import DocumentSetupModal, { type DocumentMetadata } from './components/DocumentSetupModal';
+import { generateDefaultOutline } from './utils/outlineGenerator';
+import type { Outline } from './types/outline';
 
 type Theme = 'light' | 'dark';
 
@@ -51,18 +56,69 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [openEditorKey, setOpenEditorKey] = useState<number | null>(null);
+  const [view, setView] = useState<'home' | 'outline' | 'writer' | 'editor'>('home');
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [currentOutline, setCurrentOutline] = useState<Outline | null>(null);
+  const [currentMetadata, setCurrentMetadata] = useState<DocumentMetadata | null>(null);
 
-  const createNewDocument = () => {
-    setOpenEditorKey(Date.now());
+  const openSetupModal = () => setShowSetupModal(true);
+  const closeSetupModal = () => setShowSetupModal(false);
+
+  const handleCreate = (metadata: DocumentMetadata) => {
+    setShowSetupModal(false);
+    setCurrentMetadata(metadata);
+
+    // Generate default outline from metadata
+    const outline = generateDefaultOutline(
+      metadata.topic || 'Untitled Document',
+      metadata as any
+    );
+    setCurrentOutline(outline);
+    setView('outline');
+  };
+
+  const handleBackFromOutline = () => {
+    setView('home');
+    setCurrentOutline(null);
+    setCurrentMetadata(null);
+  };
+
+  const handleStartWriting = (updatedOutline: Outline) => {
+    setCurrentOutline(updatedOutline);
+    setView('writer');
+  };
+
+  const handleBackFromWriter = () => {
+    setView('outline');
+  };
+
+  const handleSaveOutline = (updatedOutline: Outline) => {
+    setCurrentOutline(updatedOutline);
   };
 
   return (
     <ThemeProvider>
-      {openEditorKey ? (
-        <Editor key={openEditorKey} />
-      ) : (
-        <Home onCreate={createNewDocument} />
+      {view === 'home' && <Home onCreate={openSetupModal} />}
+      {view === 'outline' && currentOutline && (
+        <OutlineEditor
+          initialOutline={currentOutline}
+          documentMetadata={currentMetadata}
+          onBack={handleBackFromOutline}
+          onStartWriting={handleStartWriting}
+        />
+      )}
+      {view === 'writer' && currentOutline && (
+        <ParagraphWriter
+          initialOutline={currentOutline}
+          onBack={handleBackFromWriter}
+          onSave={handleSaveOutline}
+        />
+      )}
+      {view === 'editor' && (
+        <Editor />
+      )}
+      {showSetupModal && (
+        <DocumentSetupModal onClose={closeSetupModal} onCreate={handleCreate} />
       )}
     </ThemeProvider>
   );
