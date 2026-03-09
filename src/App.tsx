@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import Editor from './components/Editor';
+import Home from './components/Home';
 
 type Theme = 'light' | 'dark';
 
@@ -50,9 +51,19 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const [openEditorKey, setOpenEditorKey] = useState<number | null>(null);
+
+  const createNewDocument = () => {
+    setOpenEditorKey(Date.now());
+  };
+
   return (
     <ThemeProvider>
-      <Editor />
+      {openEditorKey ? (
+        <Editor key={openEditorKey} />
+      ) : (
+        <Home onCreate={createNewDocument} />
+      )}
     </ThemeProvider>
   );
 }
