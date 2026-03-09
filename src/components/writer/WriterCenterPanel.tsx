@@ -1,5 +1,7 @@
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import type { Paragraph } from '../../types/outline';
+import { useRef } from 'react';
+import ParagraphToolbar from '../ParagraphToolbar';
 
 interface WriterCenterPanelProps {
   paragraph: Paragraph | null;
@@ -20,6 +22,7 @@ export default function WriterCenterPanel({
   hasPrevious,
   hasNext,
 }: WriterCenterPanelProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   if (!paragraph) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -57,7 +60,10 @@ export default function WriterCenterPanel({
       {/* Writing Area */}
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-4xl mx-auto">
+          {/* Paragraph toolbar (sticky within this scroll container) */}
+          <ParagraphToolbar textareaRef={textareaRef} onChange={(val) => onContentChange(val)} value={paragraph.content} />
           <textarea
+            ref={textareaRef}
             value={paragraph.content}
             onChange={(e) => onContentChange(e.target.value)}
             placeholder="Start writing this paragraph..."
