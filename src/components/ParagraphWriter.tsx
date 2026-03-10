@@ -153,45 +153,30 @@ export default function ParagraphWriter({
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      {/* Compact top bar to maximize writer space */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onBack}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              aria-label="Back to outline"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                {outline.title}
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Paragraphs Completed: {progress.complete} / {progress.total} (
-                {progress.percentComplete}%)
-              </p>
-            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
+              {progress.complete}/{progress.total} complete ({progress.percentComplete}%)
+            </p>
           </div>
 
           {onSave && (
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Save Progress
+              Save
             </button>
           )}
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mt-4">
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="bg-green-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress.percentComplete}%` }}
-            />
-          </div>
         </div>
       </div>
 
