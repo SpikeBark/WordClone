@@ -53,7 +53,7 @@ export default function WriterRightPanel({
 
   if (!paragraph) {
     return (
-      <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
+      <div className="w-full h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-6 flex flex-col items-center justify-center">
         <p className="text-gray-500 dark:text-gray-400 text-center">Select a paragraph to view guidance</p>
       </div>
     );
@@ -62,7 +62,7 @@ export default function WriterRightPanel({
   const wordCount = paragraph.content ? paragraph.content.trim().split(/\s+/).filter(Boolean).length : 0;
 
   return (
-    <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
+    <div className="w-full h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center gap-2">

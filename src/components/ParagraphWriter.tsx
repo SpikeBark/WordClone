@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Outline, ParagraphFeedback, ResearchSuggestions } from '../types/outline';
 import WriterLeftPanel from './writer/WriterLeftPanel';
 import WriterCenterPanel, { type WriterCenterPanelHandle } from './writer/WriterCenterPanel';
@@ -53,6 +53,12 @@ export default function ParagraphWriter({
     Record<string, boolean>
   >({});
   const [isFetchingResearch, setIsFetchingResearch] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState<number>(256);
+  const [leftPanelHidden, setLeftPanelHidden] = useState<boolean>(false);
+  const [rightPanelWidth, setRightPanelWidth] = useState<number>(320);
+  const [rightPanelHidden, setRightPanelHidden] = useState<boolean>(false);
+  const leftResizingRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const resizingRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   // Get all paragraphs in order
   const allParagraphs = useMemo(() => {
@@ -175,6 +181,50 @@ export default function ParagraphWriter({
     setSelectedParagraphId(allParagraphs[0].id);
   }
 
+  // Keep width in localStorage so user preference persists during session
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('wc:leftPanelWidth');
+      if (saved) setLeftPanelWidth(Number(saved));
+    } catch {}
+    try {
+      const savedHidden = window.localStorage.getItem('wc:leftPanelHidden');
+      if (savedHidden === '1') setLeftPanelHidden(true);
+    } catch {}
+    try {
+      const saved = window.localStorage.getItem('wc:rightPanelWidth');
+      if (saved) setRightPanelWidth(Number(saved));
+    } catch {}
+    try {
+      const savedHidden = window.localStorage.getItem('wc:rightPanelHidden');
+      if (savedHidden === '1') setRightPanelHidden(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('wc:leftPanelWidth', String(leftPanelWidth));
+    } catch {}
+  }, [leftPanelWidth]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('wc:leftPanelHidden', leftPanelHidden ? '1' : '0');
+    } catch {}
+  }, [leftPanelHidden]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('wc:rightPanelWidth', String(rightPanelWidth));
+    } catch {}
+  }, [rightPanelWidth]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('wc:rightPanelHidden', rightPanelHidden ? '1' : '0');
+    } catch {}
+  }, [rightPanelHidden]);
+
   // Save outline if callback provided
   const handleSave = useCallback(() => {
     if (onSave) {
@@ -267,6 +317,43 @@ export default function ParagraphWriter({
     fetchResearchSuggestions(selectedParagraphId, currentParagraph.content);
   }, [currentParagraph, selectedParagraphId, fetchResearchSuggestions]);
 
+  // Resize handlers for right panel
+  const onPointerDownLeftResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    leftResizingRef.current = { startX: e.clientX, startWidth: leftPanelWidth };
+  }, [leftPanelWidth]);
+
+  const onPointerDownResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    resizingRef.current = { startX: e.clientX, startWidth: rightPanelWidth };
+  }, [rightPanelWidth]);
+
+  useEffect(() => {
+    function onPointerMove(e: PointerEvent) {
+      if (leftResizingRef.current) {
+        const leftDelta = e.clientX - leftResizingRef.current.startX;
+        const leftNext = Math.max(180, Math.min(520, leftResizingRef.current.startWidth + leftDelta));
+        setLeftPanelWidth(leftNext);
+      }
+      if (!resizingRef.current) return;
+      const delta = resizingRef.current.startX - e.clientX;
+      const next = Math.max(200, Math.min(800, resizingRef.current.startWidth + delta));
+      setRightPanelWidth(next);
+    }
+    function onPointerUp() {
+      leftResizingRef.current = null;
+      resizingRef.current = null;
+    }
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+  }, []);
+
   const reviewCurrentParagraph = useCallback(async () => {
     if (!currentParagraph || !selectedParagraphId) return;
 
@@ -353,11 +440,40 @@ export default function ParagraphWriter({
       {/* Three-Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Outline Navigation */}
-        <WriterLeftPanel
-          outline={outline}
-          selectedParagraphId={selectedParagraphId}
-          onSelectParagraph={setSelectedParagraphId}
-        />
+        {!leftPanelHidden && (
+          <div style={{ width: leftPanelWidth }} className="flex-none">
+            <WriterLeftPanel
+              outline={outline}
+              selectedParagraphId={selectedParagraphId}
+              onSelectParagraph={setSelectedParagraphId}
+            />
+          </div>
+        )}
+
+        {/* Left resize handle + hide toggle */}
+        <div
+          onPointerDown={onPointerDownLeftResize}
+          role="separator"
+          aria-orientation="vertical"
+          className="flex items-center justify-center select-none border-l border-r border-gray-200 dark:border-gray-700"
+          style={{ width: 12, cursor: 'col-resize' }}
+        >
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => setLeftPanelHidden((v) => !v)}
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            title={leftPanelHidden ? 'Show outline panel' : 'Hide outline panel'}
+            style={{
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {leftPanelHidden ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
 
         {/* Center Panel - Writing Editor */}
         <WriterCenterPanel
@@ -375,44 +491,72 @@ export default function ParagraphWriter({
           hasPrevious={currentIndex > 0}
           hasNext={currentIndex < allParagraphs.length - 1}
         />
+        {/* Resize handle (also contains collapse/expand control) */}
+        <div
+          onPointerDown={onPointerDownResize}
+          role="separator"
+          aria-orientation="vertical"
+          className="flex items-center justify-center select-none border-l border-r border-gray-200 dark:border-gray-700"
+          style={{ width: 12, cursor: 'col-resize' }}
+        >
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => setRightPanelHidden((v) => !v)}
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            title={rightPanelHidden ? 'Show guidance panel' : 'Hide guidance panel'}
+            style={{
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {rightPanelHidden ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+        </div>
 
-        {/* Right Panel - Guidance */}
-        <WriterRightPanel
-          paragraph={currentParagraph}
-          selectedText={currentSelection}
-          feedback={
-            selectedParagraphId ? feedbackByParagraphId[selectedParagraphId] ?? null : null
-          }
-          feedbackError={
-            selectedParagraphId
-              ? feedbackErrorByParagraphId[selectedParagraphId] ?? null
-              : null
-          }
-          isReviewing={isReviewing}
-          showResearchAssistant={
-            !!selectedParagraphId && !!researchActivatedByParagraphId[selectedParagraphId]
-          }
-          researchSuggestions={
-            selectedParagraphId ? researchByParagraphId[selectedParagraphId] ?? null : null
-          }
-          researchValidation={
-            selectedParagraphId ? researchValidationByParagraphId[selectedParagraphId] ?? null : null
-          }
-          researchError={
-            selectedParagraphId
-              ? researchErrorByParagraphId[selectedParagraphId] ?? null
-              : null
-          }
-          isFetchingResearch={isFetchingResearch}
-          onAddGeneralNote={(note: string) =>
-            selectedParagraphId && addGeneralNote(selectedParagraphId, note)
-          }
-          onAddSelectionNote={(selectedText: string, note: string) =>
-            selectedParagraphId && addSelectionNote(selectedParagraphId, selectedText, note)
-          }
-          onInsertText={insertTextIntoParagraph}
-          onGenerateMoreEvidence={generateMoreEvidence}
-        />
+        {/* Right Panel - Guidance (resizable and hideable) */}
+        {!rightPanelHidden && (
+          <div style={{ width: rightPanelWidth }} className="flex-none">
+            <WriterRightPanel
+              paragraph={currentParagraph}
+              selectedText={currentSelection}
+              feedback={
+                selectedParagraphId ? feedbackByParagraphId[selectedParagraphId] ?? null : null
+              }
+              feedbackError={
+                selectedParagraphId
+                  ? feedbackErrorByParagraphId[selectedParagraphId] ?? null
+                  : null
+              }
+              isReviewing={isReviewing}
+              showResearchAssistant={
+                !!selectedParagraphId && !!researchActivatedByParagraphId[selectedParagraphId]
+              }
+              researchSuggestions={
+                selectedParagraphId ? researchByParagraphId[selectedParagraphId] ?? null : null
+              }
+              researchValidation={
+                selectedParagraphId ? researchValidationByParagraphId[selectedParagraphId] ?? null : null
+              }
+              researchError={
+                selectedParagraphId
+                  ? researchErrorByParagraphId[selectedParagraphId] ?? null
+                  : null
+              }
+              isFetchingResearch={isFetchingResearch}
+              onAddGeneralNote={(note: string) =>
+                selectedParagraphId && addGeneralNote(selectedParagraphId, note)
+              }
+              onAddSelectionNote={(selectedText: string, note: string) =>
+                selectedParagraphId && addSelectionNote(selectedParagraphId, selectedText, note)
+              }
+              onInsertText={insertTextIntoParagraph}
+              onGenerateMoreEvidence={generateMoreEvidence}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
