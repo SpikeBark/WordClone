@@ -100,9 +100,25 @@ function parseResearchSuggestion(raw: unknown): ResearchSuggestion | null {
     const obj = raw as Record<string, unknown>;
     const text = typeof obj.text === 'string' ? obj.text.trim() : '';
     if (!text) return null;
-    const url = typeof obj.url === 'string' && obj.url.trim().startsWith('http')
-      ? obj.url.trim()
-      : undefined;
+    function normalizeUrl(rawUrl: unknown): string | undefined {
+      if (typeof rawUrl !== 'string') return undefined;
+      let s = rawUrl.trim();
+      // strip surrounding angle brackets or quotes
+      s = s.replace(/^<|>$/g, '');
+      s = s.replace(/^['\"]|['\"]/g, '');
+      // extract from markdown link [text](url)
+      const mdMatch = s.match(/\[.*?\]\((.*?)\)/);
+      if (mdMatch?.[1]) s = mdMatch[1].trim();
+      // remove trailing punctuation
+      s = s.replace(/[.,;]+$/g, '');
+      if (/^https?:\/\//i.test(s)) return s;
+      if (/^www\./i.test(s)) return `https://${s}`;
+      // bare domain like example.com/path -> prepend https
+      if (/^[\w-]+\.[\w.-]+(\/|$)/.test(s)) return `https://${s}`;
+      return undefined;
+    }
+
+    const url = normalizeUrl(obj.url);
     return { text, url };
   }
   return null;

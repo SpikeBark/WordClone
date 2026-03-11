@@ -11,6 +11,7 @@ interface WriterRightPanelProps {
   isReviewing: boolean;
   showResearchAssistant: boolean;
   researchSuggestions: ResearchSuggestions | null;
+  researchValidation?: any | null;
   researchError: string | null;
   isFetchingResearch: boolean;
   onAddGeneralNote: (note: string) => void;
@@ -27,6 +28,7 @@ export default function WriterRightPanel({
   isReviewing,
   showResearchAssistant,
   researchSuggestions,
+  researchValidation,
   researchError,
   isFetchingResearch,
   onAddGeneralNote,
@@ -159,6 +161,7 @@ export default function WriterRightPanel({
             </label>
             <ResearchAssistantPanel
               suggestions={researchSuggestions}
+              validation={researchValidation ?? null}
               error={researchError}
               isFetching={isFetchingResearch}
               onInsertText={onInsertText}

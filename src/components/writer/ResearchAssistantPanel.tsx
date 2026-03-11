@@ -5,6 +5,7 @@ interface ResearchAssistantPanelProps {
   suggestions: ResearchSuggestions | null;
   error: string | null;
   isFetching: boolean;
+  validation?: any | null;
   onInsertText: (text: string) => void;
   onGenerateMore: () => void;
 }
@@ -13,6 +14,7 @@ export default function ResearchAssistantPanel({
   suggestions,
   error,
   isFetching,
+  validation,
   onInsertText,
   onGenerateMore,
 }: ResearchAssistantPanelProps) {
@@ -67,7 +69,12 @@ export default function ResearchAssistantPanel({
               {suggestions.statistics.map((stat, idx) => (
                 <div key={idx} className="space-y-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs text-gray-700 dark:text-gray-300 flex-1">• {stat.text}</p>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-700 dark:text-gray-300">• {stat.text}</p>
+                      {validation?.statistics?.[idx]?.status && (
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Status: {validation.statistics[idx].status}</p>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => onInsertText(stat.text)}
@@ -77,55 +84,33 @@ export default function ResearchAssistantPanel({
                     </button>
                   </div>
                   {stat.url && (
-                    <a
-                      href={stat.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline pl-3"
-                    >
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                      <span className="truncate">Verify source</span>
-                    </a>
+                    <div className="pl-3">
+                      <a
+                        href={stat.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                      >
+                        <ExternalLink className="w-3 h-3 shrink-0" />
+                        <span className="truncate">Verify source</span>
+                      </a>
+                      {validation?.statistics?.[idx]?.status && validation.statistics[idx].status !== 'valid' && (
+                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          <p>Original link appears {validation.statistics[idx].status}.</p>
+                          <p className="mt-1">Search Google Scholar for this claim:</p>
+                          {(validation.statistics[idx].alternatives ?? []).slice(0,1).map((alt: string, aidx: number) => (
+                            <p key={aidx} className="mt-1"><a href={alt} target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 hover:underline">Google Scholar →</a></p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Source */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-            <div className="flex items-center gap-1 mb-2">
-              <ExternalLink className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
-                Source
-              </p>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-xs text-gray-700 dark:text-gray-300 flex-1">
-                  • {suggestions.source.text}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => onInsertText(suggestions.source.text)}
-                  className="shrink-0 text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                >
-                  Insert
-                </button>
-              </div>
-              {suggestions.source.url && (
-                <a
-                  href={suggestions.source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline pl-3"
-                >
-                  <ExternalLink className="w-3 h-3 shrink-0" />
-                  <span className="truncate">Visit source</span>
-                </a>
-              )}
-            </div>
-          </div>
+          {/* Source removed: model-provided source was confusing; show Scholar alternatives per-stat when needed */}
 
           {/* Example — no verification link (illustrative content) */}
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">

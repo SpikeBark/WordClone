@@ -10,6 +10,7 @@ import {
   shouldActivateResearchAssistant,
   getResearchSuggestions,
 } from '../utils/researchAssistant';
+import { validateUrl, makeSearchAlternatives } from '../utils/urlHelpers';
 
 interface ParagraphWriterProps {
   initialOutline: Outline;
@@ -41,6 +42,9 @@ export default function ParagraphWriter({
   const [isReviewing, setIsReviewing] = useState(false);
   const [researchByParagraphId, setResearchByParagraphId] = useState<
     Record<string, ResearchSuggestions>
+  >({});
+  const [researchValidationByParagraphId, setResearchValidationByParagraphId] = useState<
+    Record<string, any>
   >({});
   const [researchErrorByParagraphId, setResearchErrorByParagraphId] = useState<
     Record<string, string>
@@ -193,6 +197,41 @@ export default function ParagraphWriter({
           ...prev,
           [paragraphId]: suggestions,
         }));
+        (async () => {
+          try {
+            const validation: any = { statistics: [], source: null };
+
+            await Promise.all(
+              suggestions.statistics.map(async (stat) => {
+                const info: any = { text: stat.text, url: stat.url };
+                if (stat.url) {
+                  const status = await validateUrl(stat.url);
+                  info.status = status;
+                  if (status !== 'valid') info.alternatives = makeSearchAlternatives(stat.text || stat.url);
+                } else {
+                  info.status = 'unknown';
+                  info.alternatives = makeSearchAlternatives(stat.text);
+                }
+                validation.statistics.push(info);
+              })
+            );
+
+            const src: any = { text: suggestions.source.text, url: suggestions.source.url };
+            if (suggestions.source.url) {
+              const sStatus = await validateUrl(suggestions.source.url);
+              src.status = sStatus;
+              if (sStatus !== 'valid') src.alternatives = makeSearchAlternatives(suggestions.source.text || suggestions.source.url);
+            } else {
+              src.status = 'unknown';
+              src.alternatives = makeSearchAlternatives(suggestions.source.text);
+            }
+            validation.source = src;
+
+            setResearchValidationByParagraphId((prev) => ({ ...prev, [paragraphId]: validation }));
+          } catch {
+            // ignore validation failures — validation is best-effort
+          }
+        })();
       } catch (error) {
         const message =
           error instanceof Error && error.message.trim()
@@ -355,6 +394,9 @@ export default function ParagraphWriter({
           }
           researchSuggestions={
             selectedParagraphId ? researchByParagraphId[selectedParagraphId] ?? null : null
+          }
+          researchValidation={
+            selectedParagraphId ? researchValidationByParagraphId[selectedParagraphId] ?? null : null
           }
           researchError={
             selectedParagraphId
