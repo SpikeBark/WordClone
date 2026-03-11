@@ -1,10 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import type { Outline } from '../types/outline';
+import type { Outline, ParagraphFeedback } from '../types/outline';
 import WriterLeftPanel from './writer/WriterLeftPanel';
 import WriterCenterPanel from './writer/WriterCenterPanel';
-import WriterRightPanel from './writer/WriterRightPanel';
+import WriterRightPanel from './writer/WriterRightPanel.tsx';
 import { getWritingProgress } from '../utils/documentAssembler';
+import { reviewParagraphWithAI } from '../utils/paragraphFeedback';
 
 interface ParagraphWriterProps {
   initialOutline: Outline;
@@ -22,6 +23,13 @@ export default function ParagraphWriter({
     null
   );
   const [currentSelection, setCurrentSelection] = useState<string>('');
+  const [feedbackByParagraphId, setFeedbackByParagraphId] = useState<
+    Record<string, ParagraphFeedback>
+  >({});
+  const [feedbackErrorByParagraphId, setFeedbackErrorByParagraphId] = useState<
+    Record<string, string>
+  >({});
+  const [isReviewing, setIsReviewing] = useState(false);
 
   // Get all paragraphs in order
   const allParagraphs = useMemo(() => {
@@ -151,6 +159,52 @@ export default function ParagraphWriter({
     }
   }, [outline, onSave]);
 
+  const reviewCurrentParagraph = useCallback(async () => {
+    if (!currentParagraph || !selectedParagraphId) return;
+
+    if (!currentParagraph.content.trim()) {
+      setFeedbackErrorByParagraphId((prev) => ({
+        ...prev,
+        [selectedParagraphId]: 'Write some content before requesting feedback.',
+      }));
+      return;
+    }
+
+    setIsReviewing(true);
+    setFeedbackErrorByParagraphId((prev) => {
+      const next = { ...prev };
+      delete next[selectedParagraphId];
+      return next;
+    });
+
+    try {
+      const feedback = await reviewParagraphWithAI({
+        document_topic: outline.title,
+        section_title: currentParagraph.title || 'Untitled Section',
+        paragraph_title: currentParagraph.title || 'Untitled Paragraph',
+        paragraph_notes: currentParagraph.notes || '',
+        paragraph_text: currentParagraph.content,
+      });
+
+      setFeedbackByParagraphId((prev) => ({
+        ...prev,
+        [selectedParagraphId]: feedback,
+      }));
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message.trim()
+          ? error.message.trim()
+          : 'Feedback unavailable. Please try again.';
+
+      setFeedbackErrorByParagraphId((prev) => ({
+        ...prev,
+        [selectedParagraphId]: message,
+      }));
+    } finally {
+      setIsReviewing(false);
+    }
+  }, [currentParagraph, outline.title, selectedParagraphId]);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Compact top bar to maximize writer space */}
@@ -196,6 +250,8 @@ export default function ParagraphWriter({
             selectedParagraphId && updateParagraphContent(selectedParagraphId, content)
           }
           onSelectionChange={setCurrentSelection}
+          onReviewParagraph={reviewCurrentParagraph}
+          isReviewing={isReviewing}
           onMarkComplete={markParagraphComplete}
           onPrevious={goToPrevious}
           onNext={goToNext}
@@ -207,10 +263,19 @@ export default function ParagraphWriter({
         <WriterRightPanel
           paragraph={currentParagraph}
           selectedText={currentSelection}
-          onAddGeneralNote={(note) =>
+          feedback={
+            selectedParagraphId ? feedbackByParagraphId[selectedParagraphId] ?? null : null
+          }
+          feedbackError={
+            selectedParagraphId
+              ? feedbackErrorByParagraphId[selectedParagraphId] ?? null
+              : null
+          }
+          isReviewing={isReviewing}
+          onAddGeneralNote={(note: string) =>
             selectedParagraphId && addGeneralNote(selectedParagraphId, note)
           }
-          onAddSelectionNote={(selectedText, note) =>
+          onAddSelectionNote={(selectedText: string, note: string) =>
             selectedParagraphId && addSelectionNote(selectedParagraphId, selectedText, note)
           }
         />

@@ -28,6 +28,21 @@ export interface Outline {
   paragraphs: Paragraph[];
 }
 
+export interface ParagraphFeedbackRequest {
+  document_topic: string;
+  section_title: string;
+  paragraph_title: string;
+  paragraph_notes: string;
+  paragraph_text: string;
+}
+
+export interface ParagraphFeedback {
+  clarity: string;
+  focus: string;
+  evidence: string;
+  flow: string;
+}
+
 export interface BubbleNode {
   id: string;
   type: 'paragraph' | 'point';

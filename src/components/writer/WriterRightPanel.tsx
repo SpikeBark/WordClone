@@ -1,10 +1,13 @@
 import { Lightbulb, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
-import type { Paragraph } from '../../types/outline';
+import type { Paragraph, ParagraphFeedback } from '../../types/outline';
 
 interface WriterRightPanelProps {
   paragraph: Paragraph | null;
   selectedText: string;
+  feedback: ParagraphFeedback | null;
+  feedbackError: string | null;
+  isReviewing: boolean;
   onAddGeneralNote: (note: string) => void;
   onAddSelectionNote: (selectedText: string, note: string) => void;
 }
@@ -12,6 +15,9 @@ interface WriterRightPanelProps {
 export default function WriterRightPanel({
   paragraph,
   selectedText,
+  feedback,
+  feedbackError,
+  isReviewing,
   onAddGeneralNote,
   onAddSelectionNote,
 }: WriterRightPanelProps) {
@@ -85,6 +91,52 @@ export default function WriterRightPanel({
             </div>
           </div>
         )}
+
+        {/* Paragraph feedback from AI review */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            Paragraph Feedback
+          </label>
+
+          <div className="space-y-2">
+            {isReviewing && (
+              <p className="text-sm text-gray-600 dark:text-gray-300">Reviewing paragraph...</p>
+            )}
+
+            {feedbackError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-700 dark:text-red-300">{feedbackError}</p>
+              </div>
+            )}
+
+            {!isReviewing && !feedbackError && !feedback && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Click Review Paragraph to get structured feedback.
+              </p>
+            )}
+
+            {feedback && (
+              <div className="space-y-2">
+                <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Clarity</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200">{feedback.clarity}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Focus</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200">{feedback.focus}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Evidence</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200">{feedback.evidence}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Flow</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200">{feedback.flow}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Notes (planning notes merged into general notes) */}
         <div>

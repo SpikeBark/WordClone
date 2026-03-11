@@ -46,6 +46,21 @@ A minimal MVP web-based word processor built with React, TypeScript, Vite, Tailw
 npm install
 ```
 
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+VITE_GROQ_API_KEY=your_groq_api_key_here
+VITE_GROQ_MODEL=llama-3.1-8b-instant
+```
+
+`VITE_GROQ_API_KEY` is required for the paragraph feedback assistant in the writing screen.
+
+`VITE_GROQ_MODEL` is optional. If you omit it, the app will try `llama-3.1-8b-instant` first and then fall back to `llama-3.3-70b-versatile`.
+
+If you update `.env`, restart the Vite dev server so the browser picks up the new values.
+
 ### Development
 
 ```bash

@@ -7,6 +7,8 @@ interface WriterCenterPanelProps {
   paragraph: Paragraph | null;
   onContentChange: (content: string) => void;
   onSelectionChange: (selectedText: string) => void;
+  onReviewParagraph: () => void;
+  isReviewing: boolean;
   onMarkComplete: () => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -18,6 +20,8 @@ export default function WriterCenterPanel({
   paragraph,
   onContentChange,
   onSelectionChange,
+  onReviewParagraph,
+  isReviewing,
   onMarkComplete,
   onPrevious,
   onNext,
@@ -173,15 +177,25 @@ export default function WriterCenterPanel({
             </button>
           </div>
 
-          {/* Mark Complete */}
-          <button
-            onClick={onMarkComplete}
-            disabled={paragraph.status === 'complete'}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <Check className="w-4 h-4" />
-            Mark Complete
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onReviewParagraph}
+              disabled={isReviewing}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {isReviewing ? 'Reviewing...' : 'Review Paragraph'}
+            </button>
+
+            {/* Mark Complete */}
+            <button
+              onClick={onMarkComplete}
+              disabled={paragraph.status === 'complete'}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              <Check className="w-4 h-4" />
+              Mark Complete
+            </button>
+          </div>
         </div>
       </div>
     </div>
