@@ -1,17 +1,23 @@
 import { useState, useCallback, useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import type { Outline, ParagraphFeedback } from '../types/outline';
+import type { Outline, ParagraphFeedback, ResearchSuggestions } from '../types/outline';
 import WriterLeftPanel from './writer/WriterLeftPanel';
 import WriterCenterPanel from './writer/WriterCenterPanel';
 import WriterRightPanel from './writer/WriterRightPanel.tsx';
 import { getWritingProgress } from '../utils/documentAssembler';
 import { reviewParagraphWithAI } from '../utils/paragraphFeedback';
+import {
+  shouldActivateResearchAssistant,
+  getResearchSuggestions,
+} from '../utils/researchAssistant';
 
 interface ParagraphWriterProps {
   initialOutline: Outline;
   onBack: () => void;
   onSave?: (outline: Outline) => void;
 }
+
+const INSERT_SEPARATOR = '\n\n';
 
 export default function ParagraphWriter({
   initialOutline,
@@ -30,6 +36,16 @@ export default function ParagraphWriter({
     Record<string, string>
   >({});
   const [isReviewing, setIsReviewing] = useState(false);
+  const [researchByParagraphId, setResearchByParagraphId] = useState<
+    Record<string, ResearchSuggestions>
+  >({});
+  const [researchErrorByParagraphId, setResearchErrorByParagraphId] = useState<
+    Record<string, string>
+  >({});
+  const [researchActivatedByParagraphId, setResearchActivatedByParagraphId] = useState<
+    Record<string, boolean>
+  >({});
+  const [isFetchingResearch, setIsFetchingResearch] = useState(false);
 
   // Get all paragraphs in order
   const allParagraphs = useMemo(() => {
@@ -159,6 +175,51 @@ export default function ParagraphWriter({
     }
   }, [outline, onSave]);
 
+  const fetchResearchSuggestions = useCallback(
+    async (paragraphId: string, paragraphText: string) => {
+      setIsFetchingResearch(true);
+      setResearchErrorByParagraphId((prev) => {
+        const next = { ...prev };
+        delete next[paragraphId];
+        return next;
+      });
+
+      try {
+        const suggestions = await getResearchSuggestions(paragraphText, outline.title);
+        setResearchByParagraphId((prev) => ({
+          ...prev,
+          [paragraphId]: suggestions,
+        }));
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message.trim()
+            ? error.message.trim()
+            : 'Research suggestions unavailable. Please try again.';
+        setResearchErrorByParagraphId((prev) => ({
+          ...prev,
+          [paragraphId]: message,
+        }));
+      } finally {
+        setIsFetchingResearch(false);
+      }
+    },
+    [outline.title]
+  );
+
+  const insertTextIntoParagraph = useCallback(
+    (text: string) => {
+      if (!selectedParagraphId || !currentParagraph) return;
+      const separator = currentParagraph.content.trim() ? INSERT_SEPARATOR : '';
+      updateParagraphContent(selectedParagraphId, currentParagraph.content + separator + text);
+    },
+    [selectedParagraphId, currentParagraph, updateParagraphContent]
+  );
+
+  const generateMoreEvidence = useCallback(() => {
+    if (!currentParagraph || !selectedParagraphId) return;
+    fetchResearchSuggestions(selectedParagraphId, currentParagraph.content);
+  }, [currentParagraph, selectedParagraphId, fetchResearchSuggestions]);
+
   const reviewCurrentParagraph = useCallback(async () => {
     if (!currentParagraph || !selectedParagraphId) return;
 
@@ -190,6 +251,14 @@ export default function ParagraphWriter({
         ...prev,
         [selectedParagraphId]: feedback,
       }));
+
+      if (shouldActivateResearchAssistant(currentParagraph.content, feedback.evidence)) {
+        setResearchActivatedByParagraphId((prev) => ({
+          ...prev,
+          [selectedParagraphId]: true,
+        }));
+        fetchResearchSuggestions(selectedParagraphId, currentParagraph.content);
+      }
     } catch (error) {
       const message =
         error instanceof Error && error.message.trim()
@@ -203,7 +272,7 @@ export default function ParagraphWriter({
     } finally {
       setIsReviewing(false);
     }
-  }, [currentParagraph, outline.title, selectedParagraphId]);
+  }, [currentParagraph, fetchResearchSuggestions, outline.title, selectedParagraphId]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
@@ -272,12 +341,26 @@ export default function ParagraphWriter({
               : null
           }
           isReviewing={isReviewing}
+          showResearchAssistant={
+            !!selectedParagraphId && !!researchActivatedByParagraphId[selectedParagraphId]
+          }
+          researchSuggestions={
+            selectedParagraphId ? researchByParagraphId[selectedParagraphId] ?? null : null
+          }
+          researchError={
+            selectedParagraphId
+              ? researchErrorByParagraphId[selectedParagraphId] ?? null
+              : null
+          }
+          isFetchingResearch={isFetchingResearch}
           onAddGeneralNote={(note: string) =>
             selectedParagraphId && addGeneralNote(selectedParagraphId, note)
           }
           onAddSelectionNote={(selectedText: string, note: string) =>
             selectedParagraphId && addSelectionNote(selectedParagraphId, selectedText, note)
           }
+          onInsertText={insertTextIntoParagraph}
+          onGenerateMoreEvidence={generateMoreEvidence}
         />
       </div>
     </div>

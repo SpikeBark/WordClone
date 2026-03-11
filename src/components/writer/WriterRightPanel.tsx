@@ -1,6 +1,7 @@
 import { Lightbulb, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
-import type { Paragraph, ParagraphFeedback } from '../../types/outline';
+import type { Paragraph, ParagraphFeedback, ResearchSuggestions } from '../../types/outline';
+import ResearchAssistantPanel from './ResearchAssistantPanel';
 
 interface WriterRightPanelProps {
   paragraph: Paragraph | null;
@@ -8,8 +9,14 @@ interface WriterRightPanelProps {
   feedback: ParagraphFeedback | null;
   feedbackError: string | null;
   isReviewing: boolean;
+  showResearchAssistant: boolean;
+  researchSuggestions: ResearchSuggestions | null;
+  researchError: string | null;
+  isFetchingResearch: boolean;
   onAddGeneralNote: (note: string) => void;
   onAddSelectionNote: (selectedText: string, note: string) => void;
+  onInsertText: (text: string) => void;
+  onGenerateMoreEvidence: () => void;
 }
 
 export default function WriterRightPanel({
@@ -18,8 +25,14 @@ export default function WriterRightPanel({
   feedback,
   feedbackError,
   isReviewing,
+  showResearchAssistant,
+  researchSuggestions,
+  researchError,
+  isFetchingResearch,
   onAddGeneralNote,
   onAddSelectionNote,
+  onInsertText,
+  onGenerateMoreEvidence,
 }: WriterRightPanelProps) {
   const [generalDraft, setGeneralDraft] = useState('');
   const [selectionDraft, setSelectionDraft] = useState('');
@@ -137,6 +150,22 @@ export default function WriterRightPanel({
             )}
           </div>
         </div>
+
+        {/* Research Assistant */}
+        {showResearchAssistant && (
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+              Suggested Evidence
+            </label>
+            <ResearchAssistantPanel
+              suggestions={researchSuggestions}
+              error={researchError}
+              isFetching={isFetchingResearch}
+              onInsertText={onInsertText}
+              onGenerateMore={onGenerateMoreEvidence}
+            />
+          </div>
+        )}
 
         {/* Notes (planning notes merged into general notes) */}
         <div>

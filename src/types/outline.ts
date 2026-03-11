@@ -43,6 +43,12 @@ export interface ParagraphFeedback {
   flow: string;
 }
 
+export interface ResearchSuggestions {
+  statistics: string[];
+  source: string;
+  example: string;
+}
+
 export interface BubbleNode {
   id: string;
   type: 'paragraph' | 'point';
