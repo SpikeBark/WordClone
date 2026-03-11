@@ -9,6 +9,7 @@ export interface DocumentMetadata {
   tone: string;
   length_target: string;
   deadline: string;
+  citation_style: string;
 }
 
 interface DocumentSetupModalProps {
@@ -21,6 +22,7 @@ const AUDIENCES = ['General Audience', 'Students', 'Professionals', 'Academic', 
 const PURPOSES = ['Inform', 'Persuade', 'Analyze', 'Explain', 'Narrative', 'Report Findings'];
 const TONES = ['Formal', 'Casual', 'Conversational', 'Persuasive', 'Academic', 'Technical', 'Neutral'];
 const LENGTH_TARGETS = ['500 words', '1000 words', '2000+ words', 'Custom'];
+const CITATION_STYLES = ['APA', 'MLA', 'Chicago', 'Harvard', 'Vancouver'];
 
 function TagGroup({
   label,
@@ -65,6 +67,7 @@ export default function DocumentSetupModal({ onClose, onCreate }: DocumentSetupM
   const [lengthTarget, setLengthTarget] = useState('');
   const [customWordCount, setCustomWordCount] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [citationStyle, setCitationStyle] = useState('');
 
   const isValid = documentType.trim() !== '' && topic.trim() !== '';
 
@@ -81,6 +84,7 @@ export default function DocumentSetupModal({ onClose, onCreate }: DocumentSetupM
       tone,
       length_target: resolvedLength,
       deadline,
+      citation_style: citationStyle,
     };
 
     console.log(JSON.stringify(metadata, null, 2));
@@ -182,6 +186,32 @@ export default function DocumentSetupModal({ onClose, onCreate }: DocumentSetupM
               />
             </div>
           )}
+
+          {/* Citation Style */}
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Citation Style <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Used when suggesting evidence for your paragraphs. Leave unselected for no citations.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {CITATION_STYLES.map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  onClick={() => setCitationStyle(citationStyle === style ? '' : style)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 ${
+                    citationStyle === style
+                      ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-950 dark:border-slate-100'
+                      : 'text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {style}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Deadline */}
           <div className="mb-5">

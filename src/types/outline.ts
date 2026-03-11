@@ -43,9 +43,14 @@ export interface ParagraphFeedback {
   flow: string;
 }
 
+export interface ResearchSuggestion {
+  text: string;
+  url?: string;
+}
+
 export interface ResearchSuggestions {
-  statistics: string[];
-  source: string;
+  statistics: ResearchSuggestion[];
+  source: ResearchSuggestion;
   example: string;
 }
 

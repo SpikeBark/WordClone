@@ -1,4 +1,4 @@
-import type { ResearchSuggestions } from '../types/outline';
+import type { ResearchSuggestions, ResearchSuggestion } from '../types/outline';
 
 const WEAK_EVIDENCE_PHRASES = [
   'many people',
@@ -25,25 +25,38 @@ const WEAK_FEEDBACK_KEYWORDS = [
   'should include',
 ];
 
-const RESEARCH_SYSTEM_PROMPT = `You are a research assistant helping writers add evidence to their paragraphs.
+function buildResearchSystemPrompt(citationStyle: string): string {
+  const hasCitationStyle = citationStyle.trim().length > 0;
+
+  const citationInstruction = hasCitationStyle
+    ? `- Format all citations using ${citationStyle} style.`
+    : `- Do not include formal citation markup or reference formatting.`;
+
+  return `You are a research assistant helping writers add evidence to their paragraphs.
 
 Given a paragraph and its document topic, generate concise, credible evidence suggestions to strengthen the writing.
 
 Respond strictly in JSON using this structure:
 {
-  "statistics": ["statistic with source in parentheses", "optional second statistic"],
-  "source": "Organization or Author — Publication or Study Title",
+  "statistics": [
+    {"text": "statistic text", "url": "https://direct-or-search-url"},
+    {"text": "optional second statistic", "url": "https://..."}
+  ],
+  "source": {"text": "source citation", "url": "https://..."},
   "example": "A concrete real-world example related to the claims"
 }
 
 Rules:
 - Provide 1–3 statistics (at least one, at most three)
-- Include the source or organization in parentheses after each statistic
+${citationInstruction}
+- For each statistic include a "url" — use the direct report/page URL if known, otherwise a Google Scholar search URL (https://scholar.google.com/scholar?q=...) or official website URL
+- For the source include a "url" — the organization homepage or publication page
 - Name one credible academic, institutional, or journalistic source
-- Give one concrete, realistic example
-- Keep all suggestions concise and citation-friendly
-- Only cite well-known, credible sources (e.g., Pew Research, WHO, academic journals, major institutions)
-- Do not fabricate specific numbers; use realistic, representative statistics`;
+- Give one concrete, realistic example (no url needed for the example)
+- Only cite well-known, credible sources (e.g., Pew Research, WHO, CDC, academic journals, major institutions)
+- Do not fabricate specific numbers; use realistic, representative statistics
+- Ensure all URLs are well-formed and start with https://`;
+}
 
 const DEFAULT_GROQ_MODELS = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'];
 
@@ -79,20 +92,40 @@ function extractJsonBlock(text: string): string {
   return trimmed;
 }
 
+function parseResearchSuggestion(raw: unknown): ResearchSuggestion | null {
+  if (typeof raw === 'string') {
+    return { text: raw.trim() };
+  }
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    const text = typeof obj.text === 'string' ? obj.text.trim() : '';
+    if (!text) return null;
+    const url = typeof obj.url === 'string' && obj.url.trim().startsWith('http')
+      ? obj.url.trim()
+      : undefined;
+    return { text, url };
+  }
+  return null;
+}
+
 function toResearchSuggestions(raw: unknown): ResearchSuggestions {
   if (!raw || typeof raw !== 'object') {
     throw new Error('Invalid research suggestions payload');
   }
   const data = raw as Record<string, unknown>;
-  const statistics = Array.isArray(data.statistics)
+
+  const statistics: ResearchSuggestion[] = Array.isArray(data.statistics)
     ? (data.statistics as unknown[])
-        .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-        .map((s) => s.trim())
+        .map(parseResearchSuggestion)
+        .filter((s): s is ResearchSuggestion => s !== null && s.text.length > 0)
     : [];
-  const source = typeof data.source === 'string' ? data.source.trim() : '';
+
+  const sourceParsed = parseResearchSuggestion(data.source);
+  const source: ResearchSuggestion = sourceParsed ?? { text: '' };
+
   const example = typeof data.example === 'string' ? data.example.trim() : '';
 
-  if (statistics.length === 0 || !source || !example) {
+  if (statistics.length === 0 || !source.text || !example) {
     throw new Error('Incomplete research suggestions payload');
   }
 
@@ -118,7 +151,8 @@ export function shouldActivateResearchAssistant(
 
 export async function getResearchSuggestions(
   paragraphText: string,
-  documentTopic: string
+  documentTopic: string,
+  citationStyle: string = ''
 ): Promise<ResearchSuggestions> {
   const apiKey = normalizeApiKey(
     import.meta.env.VITE_GROQ_API_KEY || import.meta.env.VITE_API_KEY
@@ -133,6 +167,8 @@ export async function getResearchSuggestions(
   const models: string[] = configuredModel
     ? [configuredModel, ...DEFAULT_GROQ_MODELS.filter((m) => m !== configuredModel)]
     : DEFAULT_GROQ_MODELS;
+
+  const systemPrompt = buildResearchSystemPrompt(citationStyle);
 
   let lastError: Error | null = null;
 
@@ -149,7 +185,7 @@ export async function getResearchSuggestions(
           temperature: 0.4,
           response_format: { type: 'json_object' },
           messages: [
-            { role: 'system', content: RESEARCH_SYSTEM_PROMPT },
+            { role: 'system', content: systemPrompt },
             {
               role: 'user',
               content: JSON.stringify({
@@ -188,7 +224,7 @@ export async function getResearchSuggestions(
         error instanceof Error ? error.message : 'Research request failed.';
 
       if (/404|model|not found|unsupported|does not exist/i.test(errorMessage)) {
-        lastError = new Error(`Model ${model} is unavailable: ${errorMessage}`);
+        lastError = new Error(`Model ${model} is unavailable: ${errorMessage.replace(/^Groq API error \(\d+\):\s*/i, '')}`);
         continue;
       }
 

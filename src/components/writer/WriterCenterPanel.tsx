@@ -1,7 +1,11 @@
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import type { Paragraph } from '../../types/outline';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useImperativeHandle, forwardRef } from 'react';
 import ParagraphToolbar from '../ParagraphToolbar';
+
+export interface WriterCenterPanelHandle {
+  insertAtCursor: (text: string) => void;
+}
 
 interface WriterCenterPanelProps {
   paragraph: Paragraph | null;
@@ -16,19 +20,45 @@ interface WriterCenterPanelProps {
   hasNext: boolean;
 }
 
-export default function WriterCenterPanel({
-  paragraph,
-  onContentChange,
-  onSelectionChange,
-  onReviewParagraph,
-  isReviewing,
-  onMarkComplete,
-  onPrevious,
-  onNext,
-  hasPrevious,
-  hasNext,
-}: WriterCenterPanelProps) {
+const WriterCenterPanel = forwardRef<WriterCenterPanelHandle, WriterCenterPanelProps>(
+  function WriterCenterPanel(
+    {
+      paragraph,
+      onContentChange,
+      onSelectionChange,
+      onReviewParagraph,
+      isReviewing,
+      onMarkComplete,
+      onPrevious,
+      onNext,
+      hasPrevious,
+      hasNext,
+    }: WriterCenterPanelProps,
+    ref
+  ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    /**
+     * Inserts `text` at the textarea's current cursor position (or replaces
+     * the current selection). After the React re-render the cursor is placed
+     * immediately after the inserted text.
+     */
+    insertAtCursor: (text: string) => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const current = ta.value;
+      const newContent = current.slice(0, start) + text + current.slice(end);
+      onContentChange(newContent);
+      // Restore focus and cursor position after React re-renders
+      requestAnimationFrame(() => {
+        ta.focus();
+        ta.setSelectionRange(start + text.length, start + text.length);
+      });
+    },
+  }));
 
   const noteBySelection = useMemo(() => {
     const map = new Map<string, string>();
@@ -200,4 +230,6 @@ export default function WriterCenterPanel({
       </div>
     </div>
   );
-}
+});
+
+export default WriterCenterPanel;

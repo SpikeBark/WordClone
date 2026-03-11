@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import type { Outline, ParagraphFeedback, ResearchSuggestions } from '../types/outline';
 import WriterLeftPanel from './writer/WriterLeftPanel';
-import WriterCenterPanel from './writer/WriterCenterPanel';
+import WriterCenterPanel, { type WriterCenterPanelHandle } from './writer/WriterCenterPanel';
 import WriterRightPanel from './writer/WriterRightPanel.tsx';
 import { getWritingProgress } from '../utils/documentAssembler';
 import { reviewParagraphWithAI } from '../utils/paragraphFeedback';
@@ -13,6 +13,7 @@ import {
 
 interface ParagraphWriterProps {
   initialOutline: Outline;
+  citationStyle?: string;
   onBack: () => void;
   onSave?: (outline: Outline) => void;
 }
@@ -21,9 +22,11 @@ const INSERT_SEPARATOR = '\n\n';
 
 export default function ParagraphWriter({
   initialOutline,
+  citationStyle = '',
   onBack,
   onSave,
 }: ParagraphWriterProps) {
+  const centerPanelRef = useRef<WriterCenterPanelHandle>(null);
   const [outline, setOutline] = useState<Outline>(initialOutline);
   const [selectedParagraphId, setSelectedParagraphId] = useState<string | null>(
     null
@@ -185,7 +188,7 @@ export default function ParagraphWriter({
       });
 
       try {
-        const suggestions = await getResearchSuggestions(paragraphText, outline.title);
+        const suggestions = await getResearchSuggestions(paragraphText, outline.title, citationStyle);
         setResearchByParagraphId((prev) => ({
           ...prev,
           [paragraphId]: suggestions,
@@ -203,14 +206,19 @@ export default function ParagraphWriter({
         setIsFetchingResearch(false);
       }
     },
-    [outline.title]
+    [citationStyle, outline.title]
   );
 
   const insertTextIntoParagraph = useCallback(
     (text: string) => {
-      if (!selectedParagraphId || !currentParagraph) return;
-      const separator = currentParagraph.content.trim() ? INSERT_SEPARATOR : '';
-      updateParagraphContent(selectedParagraphId, currentParagraph.content + separator + text);
+      if (centerPanelRef.current) {
+        centerPanelRef.current.insertAtCursor(text);
+      } else if (selectedParagraphId && currentParagraph) {
+        // Fallback: append with separator if ref not available.
+        // INSERT_SEPARATOR is a module-level constant and intentionally excluded from deps.
+        const separator = currentParagraph.content.trim() ? INSERT_SEPARATOR : '';
+        updateParagraphContent(selectedParagraphId, currentParagraph.content + separator + text);
+      }
     },
     [selectedParagraphId, currentParagraph, updateParagraphContent]
   );
@@ -314,6 +322,7 @@ export default function ParagraphWriter({
 
         {/* Center Panel - Writing Editor */}
         <WriterCenterPanel
+          ref={centerPanelRef}
           paragraph={currentParagraph}
           onContentChange={(content) =>
             selectedParagraphId && updateParagraphContent(selectedParagraphId, content)

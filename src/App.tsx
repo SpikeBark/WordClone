@@ -110,6 +110,7 @@ function App() {
       {view === 'writer' && currentOutline && (
         <ParagraphWriter
           initialOutline={currentOutline}
+          citationStyle={currentMetadata?.citation_style ?? ''}
           onBack={handleBackFromWriter}
           onSave={handleSaveOutline}
         />

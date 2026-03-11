@@ -65,15 +65,28 @@ export default function ResearchAssistantPanel({
             </div>
             <div className="space-y-2">
               {suggestions.statistics.map((stat, idx) => (
-                <div key={idx} className="flex items-start justify-between gap-2">
-                  <p className="text-xs text-gray-700 dark:text-gray-300 flex-1">• {stat}</p>
-                  <button
-                    type="button"
-                    onClick={() => onInsertText(stat)}
-                    className="shrink-0 text-xs px-2 py-0.5 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
-                  >
-                    Insert
-                  </button>
+                <div key={idx} className="space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs text-gray-700 dark:text-gray-300 flex-1">• {stat.text}</p>
+                    <button
+                      type="button"
+                      onClick={() => onInsertText(stat.text)}
+                      className="shrink-0 text-xs px-2 py-0.5 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+                    >
+                      Insert
+                    </button>
+                  </div>
+                  {stat.url && (
+                    <a
+                      href={stat.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline pl-3"
+                    >
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      <span className="truncate">Verify source</span>
+                    </a>
+                  )}
                 </div>
               ))}
             </div>
@@ -87,21 +100,34 @@ export default function ResearchAssistantPanel({
                 Source
               </p>
             </div>
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-gray-700 dark:text-gray-300 flex-1">
-                • {suggestions.source}
-              </p>
-              <button
-                type="button"
-                onClick={() => onInsertText(suggestions.source)}
-                className="shrink-0 text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-              >
-                Insert
-              </button>
+            <div className="space-y-1">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs text-gray-700 dark:text-gray-300 flex-1">
+                  • {suggestions.source.text}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onInsertText(suggestions.source.text)}
+                  className="shrink-0 text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                >
+                  Insert
+                </button>
+              </div>
+              {suggestions.source.url && (
+                <a
+                  href={suggestions.source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline pl-3"
+                >
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                  <span className="truncate">Visit source</span>
+                </a>
+              )}
             </div>
           </div>
 
-          {/* Example */}
+          {/* Example — no verification link (illustrative content) */}
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
             <div className="flex items-center gap-1 mb-2">
               <MessageSquare className="w-3 h-3 text-green-600 dark:text-green-400" />
